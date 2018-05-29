@@ -540,11 +540,27 @@ if (NOT CMAKE_VERSION VERSION_LESS 3.0)
 
   install (TARGETS eigen EXPORT Eigen3Targets)
 
+if (WIN32)
+	# on Windows "make install" generates file Eigen3Config.cmake at two places: build_dir and install_dir/share/eigen3/cmake
+	# Both these files have the same line:
+	# 		get_filename_component(PACKAGE_PREFIX_DIR "${CMAKE_CURRENT_LIST_DIR}/../../../" ABSOLUTE)
+	#
+	# that is incorrect for the first file placement. The second file isn't reachable as cmake writes into register path to build_dir, not the install_dir.
+	# And hence we modify here a path to install dir with 3 dir-ups to force cmake don't generate incorrect path for PACKAGE_PREFIX_DIR at the line above.
+	#
+	# All this stuff helps to write simply findpackage(Eigen3) on Windows with cmake 3.11 + msvc2017
+	#
+#	set(INSTALL_DIR_PATH "${CMAKEPACKAGE_INSTALL_DIR}")
+	set(INSTALL_DIR_PATH "${CMAKEPACKAGE_INSTALL_DIR}/../../../")
+else()
+	set(INSTALL_DIR_PATH "${CMAKEPACKAGE_INSTALL_DIR}")
+endif()
+
   configure_package_config_file (
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake/Eigen3Config.cmake.in
     ${CMAKE_CURRENT_BINARY_DIR}/Eigen3Config.cmake
     PATH_VARS EIGEN_INCLUDE_DIR EIGEN_ROOT_DIR
-    INSTALL_DESTINATION ${CMAKEPACKAGE_INSTALL_DIR}
+    INSTALL_DESTINATION ${INSTALL_DIR_PATH}
     NO_CHECK_REQUIRED_COMPONENTS_MACRO # Eigen does not provide components
   )
   # Remove CMAKE_SIZEOF_VOID_P from Eigen3ConfigVersion.cmake since Eigen does
